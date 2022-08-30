@@ -6,13 +6,15 @@ uint8_t led_toggle = 0;
 uint32_t last_time = 0;
 uint32_t last_time_clap = 0;
 // uint32_t time_arr[] = {0, 0, 0, 0, 0, 0, 0, 0};
-Print *pp;
+// Print *pp;
 CircularBuffer<uint16_t, QUEUE_LEN> time_arr;
-IntervalTimer wakeCycle;
+// IntervalTimer wakeCycle;
+volatile uint8_t clap_flag = 0;
 // SnoozeTimer cycle;
 // SnoozeBlock config(cycle);
 
 void blinky() {
+  // Serial.println("HHHHH");
   digitalWrite(BOARDLED, HIGH);
   delay(1000);
   digitalWrite(BOARDLED, LOW);
@@ -57,6 +59,7 @@ void flip_ledsISR() {
 void pushDeltaTimeISR() {
   uint32_t deltat = millis() - last_time_clap;
   if (deltat > 50) { // Software debounce, later, add an RC LPF
+    clap_flag = 1;
     last_time_clap += deltat;
     if (deltat > 2000) {  // Clear array if more than 2s
       // memset(time_arr, 0, sizeof(time_arr));
@@ -69,19 +72,28 @@ void pushDeltaTimeISR() {
 
 void WIP() {
   if (millis() - last_time > 1000) {
+
     last_time = millis();
-    Serial.print("awake\n");
+    #ifdef DEBUG_MINE
+      Serial.print("awake\n");
+    #endif
     if (millis() - last_time_clap > 1000) { // Assume we wait 1s to "send" command && max delay of 2s
-    time_arr.debug(pp);
-      Serial.print("In one\n");
+    // time_arr.debug(pp);
+      #ifdef DEBUG_MINE
+        Serial.print("In one\n");
+      #endif
       if (time_arr.size() == 1) {
         if (time_arr.first() >= 100 || time_arr.first() <= 200) { // if two fast claps
-          Serial.print("two fast clap\n");
+          #ifdef DEBUG_MINE
+            Serial.print("two fast clap\n");
+          #endif
           flip_leds();
         } else if (time_arr.size() == 2) {
           if ((time_arr[0] >= 100 || time_arr[0] <= 200) && (time_arr[1] >= 100 || time_arr[1] <= 200)) // if three fast claps
           {
-            Serial.print("Three fast clap\n");
+            #ifdef DEBUG_MINE
+              Serial.print("Three fast clap\n");
+            #endif
             if (leds[0].red) {
               fill_solid(leds, NUM_LEDS, CRGB::Green);
             } else if (leds[0].green) {
@@ -93,7 +105,9 @@ void WIP() {
             }
           } else
           if ((time_arr[0] >= 100 || time_arr[0] <= 200) && (time_arr[1] > 200 || time_arr[1] <= 500)) {
-            Serial.print("2 fast 1 slow clap\n");
+            #ifdef DEBUG_MINE
+              Serial.print("2 fast 1 slow clap\n");
+            #endif
             fill_solid(leds, NUM_LEDS, CRGB::White);
           }
         }
@@ -103,27 +117,60 @@ void WIP() {
   }
 }
 
+void debug_circle(CircularBuffer<uint16_t, QUEUE_LEN> buff) {
+  
+  if (buff.size()) {
+    for (int ij = 0; ij <= buff.size(); ij++) {
+      continue;
+    }
+  } else {
+    Serial.println("Queue Empty.");
+  }
+}
+
+void setupMyInt() {
+
+}
+
 void setup() {
   Serial.begin(115200);
+  delay(500);
+  Serial.println("here");
+  #ifdef DEBUG_MINE
+    Serial.println("Here.");
+  #endif
   pinMode(BOARDLED, OUTPUT);
   pinMode(SOUND_DO, INPUT);
-  attachInterrupt(SOUND_DO, pushDeltaTimeISR, HIGH);
+  // cli();
+  Serial.println(GPIO6_IMR);
+  // attachInterrupt(SOUND_DO, pushDeltaTimeISR, HIGH);
+  setupMyInt();
+  Serial.println(GPIO6_IMR);
   // attachInterrupt(SOUND_DO, flip_leds, HIGH);
   setupDEMO();
   fill_solid(leds, NUM_LEDS, CRGB::Black);
   // cycle.setTimer(1);
   // wakeCycle.begin(func, 250000);
-  Serial.println("Setup Complete");
+  #ifdef DEBUG_MINE
+    Serial.println("Setup Complete");
+  #endif
+  Serial.flush();
+  // sei();
 }
 
 void loop() {
   // Snooze.idle(config);
-  // WIP();
+  if (clap_flag) {
+    // debug_circle(time_arr);
+    clap_flag = 0;
+  }
+  // blinky();
+  WIP();
 
   
 }
 
 
-// ISR (TIMER1_OVF_vect){
-
+// ISR (GPIO6_ISR){
+//   continue;
 // }

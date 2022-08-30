@@ -1,5 +1,6 @@
 #pragma once
 #include <Arduino.h>
+#include <avr/io.h>
 #include <avr/interrupt.h>
 #include <FastLED.h>
 #define CIRCULAR_BUFFER_INT_SAFE
@@ -12,6 +13,7 @@
 #include "soundSensor.h"
 
 #define QUEUE_LEN 8
+// #define DEBUG_MINE
 
 #ifdef ARDUINO_ESP32_DEV
   #define BOARDLED 2
@@ -19,6 +21,7 @@
 #elif defined(ARDUINO_TEENSY41)
   #define BOARDLED 13
   #define SOUND_DO 41
+  #define DIS_SOUND_ISR (IMXRT_GPIO6.IMR &= 0x01 << IRQ_GPIO1_INT7)
 #else 
   #define BOARDLED 13
   #define SOUND_DO 41
